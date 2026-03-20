@@ -20,7 +20,7 @@ pipeline {
                 '''
             }
         }*/
-        stage {'Tests'} {
+        stage ('Tests') {
             parallel {
                 stage('Unit Tests') {
                     agent{
@@ -29,13 +29,13 @@ pipeline {
                             reuseNode true 
                         }
                     }
-                steps {
+                    steps {
                     sh '''
                         echo 'Test stage'
                         test -f build/index.html
                         npm test
                     '''
-                }
+                    }
                 }
                 stage('E2E') {
                     agent{
@@ -44,19 +44,18 @@ pipeline {
                             reuseNode true 
                         }
                     }
-                steps {
-                    sh '''
+                    steps {
+                        sh '''
                         npm install serve
                         node_modules/.bin/serve -s build &
                         sleep 10 
                         npx playwright test
                         npx playwright test --reporter=line
-                    '''
-                }
+                        '''
+                    }
                 }
             }
         }
-
     }
     post {
         always {
