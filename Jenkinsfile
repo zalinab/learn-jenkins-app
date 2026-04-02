@@ -77,7 +77,7 @@ pipeline {
             steps {
                 sh '''
                     npm install netlify-cli@20.1.1
-                    node_modules/.bin/netlify-cli --version
+                    node_modules/.bin/netlify --version
                 '''
             }
         }
