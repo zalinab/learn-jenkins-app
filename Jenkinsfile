@@ -86,7 +86,32 @@ pipeline {
                     node_modules/.bin/node-jq -r '.deploy_url' deploy-output.json
                 '''
             }
+            script {
+                env.STAGING_URL = sh(script "node_modules/.bin/node-jq -r '.deploy_url' deploy-output.json", returnStdout:true)
+            }
         }
+        stage('Stage E2E') {
+            agent{
+                docker {
+                    image 'mcr.microsoft.com/playwright:v1.39.0-jammy'
+                        reuseNode true 
+                    }
+                }
+                    environment {
+                        CI_ENVIRONMENT_URL="${STAGING_URL}"
+                }
+                    steps {
+                        sh '''
+                        npx playwright test --reporter=line
+                        '''
+                    }
+                    post {
+                        always {
+                            publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, icon: '', keepAll: false, reportDir: 'playwright-report', reportFiles: 'index.html', reportName: 'Playwright E2E Stage', reportTitles: '', useWrapperFileDirectly: true])
+                        }
+                    }
+        }
+
         stage('Approval') {
             steps {
                 timeout(time: 15, unit: 'MINUTES') {
@@ -130,9 +155,9 @@ pipeline {
                     }
                     post {
                         always {
-                            publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, icon: '', keepAll: false, reportDir: 'playwright-report', reportFiles: 'index.html', reportName: 'Playwright E2E Report', reportTitles: '', useWrapperFileDirectly: true])
+                            publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, icon: '', keepAll: false, reportDir: 'playwright-report', reportFiles: 'index.html', reportName: 'Playwright Prod E2E', reportTitles: '', useWrapperFileDirectly: true])
                         }
                     }
-                }
+        }
     }
 }
