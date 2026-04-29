@@ -55,7 +55,7 @@ pipeline {
                 stage('E2E') {
                     agent{
                         docker {
-                            image 'mcr.microsoft.com/playwright:v1.39.0-jammy'
+                            image 'my-playwright'
                             reuseNode true 
                         }
                     }
@@ -84,14 +84,13 @@ pipeline {
             }
             steps {
                 sh '''
-                    npm install netlify-cli@20.1.1 node-jq
-                    node_modules/.bin/netlify --version
+                    netlify --version
                     echo "Deploying to stage. Site ID: $NETLIFY_SITE_ID"
-                    node_modules/.bin/netlify status
-                    node_modules/.bin/netlify deploy --dir=build --json > deploy-output.json
+                    netlify status
+                    netlify deploy --dir=build --json > deploy-output.json
                 '''
                 script {
-                    env.STAGING_URL = sh(script: "node_modules/.bin/node-jq -r '.deploy_url' deploy-output.json", returnStdout:true)
+                    env.STAGING_URL = sh(script: "node-jq -r '.deploy_url' deploy-output.json", returnStdout:true)
                     echo 'URL is saved'
                     echo env.STAGING_URL
                 }
@@ -100,7 +99,7 @@ pipeline {
         stage('Staging E2E') {
             agent{
                 docker {
-                    image 'mcr.microsoft.com/playwright:v1.39.0-jammy'
+                    image 'my-playwright'
                         reuseNode true 
                     }
                 }
@@ -121,7 +120,7 @@ pipeline {
         stage('Deploy and E2E Prod') {
             agent{
                 docker {
-                    image 'mcr.microsoft.com/playwright:v1.39.0-jammy'
+                    image 'my-playwright'
                     reuseNode true 
                     }
                 }
@@ -131,11 +130,10 @@ pipeline {
                     steps {
                         sh '''
                             node --version
-                            npm install netlify-cli@20.1.1
-                            node_modules/.bin/netlify --version
+                            netlify --version
                             echo "Deploying to production. Site ID: $NETLIFY_SITE_ID"
-                            node_modules/.bin/netlify status
-                            node_modules/.bin/netlify deploy --dir=build --prod
+                            netlify status
+                            netlify deploy --dir=build --prod
                             npx playwright test --reporter=line
                         '''
                     }
