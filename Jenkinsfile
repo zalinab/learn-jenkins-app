@@ -74,72 +74,65 @@ pipeline {
                 }
             }
         }
-        stage('Deploy staging') {
-            agent{
+
+ stage('Deploy staging') {
+            agent {
                 docker {
-                    image 'node:18-alpine'
-                    reuseNode true 
+                    image 'my-playwright'
+                    reuseNode true
                 }
             }
+
+            environment {
+                CI_ENVIRONMENT_URL = 'STAGING_URL_TO_BE_SET'
+            }
+
             steps {
                 sh '''
                     netlify --version
-                    echo "Deploying to stage. Site ID: $NETLIFY_SITE_ID"
+                    echo "Deploying to staging. Site ID: $NETLIFY_SITE_ID"
                     netlify status
                     netlify deploy --dir=build --json > deploy-output.json
+                    CI_ENVIRONMENT_URL=$(node-jq -r '.deploy_url' deploy-output.json)
+                    npx playwright test  --reporter=html
                 '''
-                script {
-                    env.STAGING_URL = sh(script: "node-jq -r '.deploy_url' deploy-output.json", returnStdout:true)
-                    echo 'URL is saved'
-                    echo env.STAGING_URL
+            }
+
+            post {
+                always {
+                    publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'playwright-report', reportFiles: 'index.html', reportName: 'Staging E2E', reportTitles: '', useWrapperFileDirectly: true])
                 }
             }
         }
-        stage('Staging E2E') {
-            agent{
+
+
+        stage('Deploy prod') {
+            agent {
                 docker {
                     image 'my-playwright'
-                        reuseNode true 
-                    }
+                    reuseNode true
                 }
-                    environment {
-                        CI_ENVIRONMENT_URL="${STAGING_URL}"
+            }
+
+            environment {
+                CI_ENVIRONMENT_URL = 'YOUR NETLIFY SITE URL'
+            }
+
+            steps {
+                sh '''
+                    node --version
+                    netlify --version
+                    echo "Deploying to production. Site ID: $NETLIFY_SITE_ID"
+                    netlify status
+                    netlify deploy --dir=build --prod
+                    npx playwright test  --reporter=html
+                '''
+            }
+
+            post {
+                always {
+                    publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'playwright-report', reportFiles: 'index.html', reportName: 'Prod E2E', reportTitles: '', useWrapperFileDirectly: true])
                 }
-                    steps {
-                        sh '''
-                        npx playwright test --reporter=line
-                        '''
-                    }
-                    post {
-                        always {
-                            publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, icon: '', keepAll: false, reportDir: 'playwright-report', reportFiles: 'stageE2E.html', reportName: 'Playwright E2E Stage', reportTitles: '', useWrapperFileDirectly: true])
-                        }
-                    }
-        }
-        stage('Deploy and E2E Prod') {
-            agent{
-                docker {
-                    image 'my-playwright'
-                    reuseNode true 
-                    }
-                }
-                    environment {
-                        CI_ENVIRONMENT_URL='https://taupe-kulfi-4e08e0.netlify.app'
-                }
-                    steps {
-                        sh '''
-                            node --version
-                            netlify --version
-                            echo "Deploying to production. Site ID: $NETLIFY_SITE_ID"
-                            netlify status
-                            netlify deploy --dir=build --prod
-                            npx playwright test --reporter=line
-                        '''
-                    }
-                    post {
-                        always {
-                            publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, icon: '', keepAll: false, reportDir: 'playwright-report', reportFiles: 'prodE2E.html', reportName: 'Prod E2E', reportTitles: '', useWrapperFileDirectly: true])
-                        }
             }
         }
     }
