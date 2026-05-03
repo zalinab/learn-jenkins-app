@@ -115,7 +115,7 @@ pipeline {
             }
 
             environment {
-                CI_ENVIRONMENT_URL = 'YOUR NETLIFY SITE URL'
+                CI_ENVIRONMENT_URL = 'https://taupe-kulfi-4e08e0.netlify.app'
             }
 
             steps {
